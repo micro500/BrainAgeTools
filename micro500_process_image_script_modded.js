@@ -315,20 +315,35 @@ function download_lua()
     data.push("local touch_data = { };\n");
     data.push("touch_data[\"touch\"] = true ;\n\n");
     
+    var last_x = 0;
+    var last_y = 0;
+    
     var ix = 0;
 
     for(var y = 0; y < 196; y++) {
         for(var x = 0; x < 180; x++) {
         if(draw_pixel_array[y][x] === 1) {
-            data.push("touch_data[\"x\"] = " + (245-y) + ";\n");
-            data.push("touch_data[\"y\"] = " + (x+5) + ";\n");
-            data.push("stylus.set(touch_data);\n");
-            data.push("emu.frameadvance();\n");
-            data.push("stylus.set(touch_data);\n");
-            data.push("emu.frameadvance();\n");
-            data.push("stylus.set(off_screen);\n");
-            data.push("emu.frameadvance();\n");
+            if ((x - last_x <= 4 && y == last_y) || (x == last_x && y - last_y <= 4))
+            {
+                data.push("touch_data[\"x\"] = " + (245-y) + ";\n");
+                data.push("touch_data[\"y\"] = " + (x+5) + ";\n");
+                data.push("stylus.set(touch_data);\n");
+                data.push("emu.frameadvance();\n");
             }
+            else
+            {
+                data.push("stylus.set(off_screen);\n");
+                data.push("emu.frameadvance();\n");
+                data.push("touch_data[\"x\"] = " + (245-y) + ";\n");
+                data.push("touch_data[\"y\"] = " + (x+5) + ";\n");
+                data.push("stylus.set(touch_data);\n");
+                data.push("emu.frameadvance();\n");
+                data.push("stylus.set(touch_data);\n");
+                data.push("emu.frameadvance();\n");
+            }
+            last_x = x;
+            last_y = y;
+          }  
         }
     }
     data.push("emu.pause();\n");
