@@ -1,3 +1,4 @@
+// noprotect
 $(function() {      
     $("#open_file_btn").click(function() {
         $("#hidden_file_select_btn").click();
@@ -7,13 +8,13 @@ $(function() {
         filename = event.target.files[0].name;
         handleImage(event);
     });
-  
+
     $("#show_border,#show_good_pixels,#show_bad_pixels").change(function(event) {
         update_image();
     });
 });
-      
-var filename;        
+
+var filename;
 var in_pixel_array = [];
 var good_pixel_array = [];
 var bad_pixel_array = [];
@@ -33,7 +34,7 @@ for (var i = 0; i < 196; i++)
         draw_pixel_array[i][j] = 0;
     }
 }
-      
+
 function process_image(img)
 {
     var canvas = document.getElementById('mycanvas');
@@ -97,7 +98,7 @@ function process_image(img)
                     good_pixel_array[y+i][x+j] = 1;
                     }
                 }
-				
+
             draw_pixel_array[y+3][x] = 1;
             }
         }
@@ -110,7 +111,7 @@ function process_image(img)
             {
                 if (bad_pixel_array[y][x] == 1)
                 {
-                bad_pixel_count++;
+                    bad_pixel_count++;
                 }
             }
         }
@@ -153,7 +154,7 @@ function update_image()
             {
                 if (good_pixel_array[y][x] == 1)
                 {
-                ctx.putImageData(fill_pixel, x+offset, y+offset);
+                    ctx.putImageData(fill_pixel, x+offset, y+offset);
                 }
             }
         }
@@ -173,7 +174,7 @@ function update_image()
             {
                 if (bad_pixel_array[y][x] == 1)
                 {
-                ctx.putImageData(fill_pixel, x+offset, y+offset);
+                    ctx.putImageData(fill_pixel, x+offset, y+offset);
                 }
             }
         }
@@ -258,7 +259,7 @@ function handleImage(e){
         };
         img.src = event.target.result;
     };
-    reader.readAsDataURL(e.target.files[0]);     
+    reader.readAsDataURL(e.target.files[0]);
 }
 
 
@@ -286,10 +287,10 @@ function download_coords()
 
     for(var y = 0; y < 196; y++) {
         for(var x = 0; x < 180; x++) {
-			if(draw_pixel_array[y][x] === 1) {
-				data.push(String.fromCharCode(x));
-				data.push(String.fromCharCode(y));
-				}
+            if(draw_pixel_array[y][x] === 1) {
+                data.push(String.fromCharCode(x));
+                data.push(String.fromCharCode(y));
+                }
         }
     }
 
@@ -308,7 +309,8 @@ function download_coords()
 
 function dataURLToBlob(dataURL) {
     var BASE64_MARKER = ';base64,';
-    if (dataURL.indexOf(BASE64_MARKER) == -1) {
+    if (dataURL.indexOf(BASE64_MARKER) == -1)
+    {
         var parts = dataURL.split(',');
         var contentType = parts[0].split(':')[1];
         var raw = decodeURIComponent(parts[1]);
@@ -330,3 +332,129 @@ function dataURLToBlob(dataURL) {
     return new Blob([uInt8Array], {type: contentType});
 }
 
+function Vector2(x,y) {
+    this.x = x;
+    this.y = y;
+
+    this.magnitude = Math.sqrt(x*x + y*y);
+    this.theta = Math.atan2(y,x);
+}
+
+Vector2.equals = function(p1,p2) {
+    return (p1.x === p2.x) && (p1.y === p2.y);
+};
+
+Vector2.fromDirection = function(d) {
+    switch(d) {
+        case 0:
+            return new Vector2(0,-1);
+        case 1:
+            return new Vector2(1,0);
+        case 2:
+            return new Vector2(0,1);
+        case 3:
+            return new Vector2(-1,0);
+        default:
+            return undefined;
+    }
+};
+
+Vector2.prototype.add = function(a,b) {
+    if(typeof(b) === "undefined") { // Adding two vectors directly
+        return new Vector2(this.x + a.x, this.y + a.y);
+    } else { // Adding components
+        return new Vector2(this.x + a, this.y + b);
+    }
+};
+
+var Direction = {
+    // Anticlockwise: turn left 90* if looking in this direction
+    'left': function(d) {
+        d--;
+        if(d<0) return 4-d;
+        else return d;
+    },
+    
+    // Clockwise: turn right 90* if looking in this direction
+    'right': function(d) {
+        d++;
+        if(d>4) return d-4;
+        else return d;
+    },
+    
+    'north': 0,
+    'east': 1,
+    'south': 2,
+    'west': 3,
+};
+
+// Find the outline of a shape.  For each shape, it finds the convex hull of
+// the contiguous black region containing the top-left-most black pixel
+function findOutline(coordinates) {
+    var result = [];
+
+    var firstPos = getFirstPoint(coordinates);
+    if(!firstPos) { return false; }
+    
+    var pos = firstPos.add(0,1);
+    var dir = Direction.south;
+    
+    result.push(firstPos);
+    
+    do {
+        result.push(pos);
+        var adjs = getAdjacentPixels(coordinates, pos, dir);
+        
+        // Invariant: adjs[2] === 0 && adjs[3] === 1
+        // Adjacency ordering:
+        // 1 2     ? ?
+        // 4 3     # _
+        
+        // _ _
+        // # _
+        if(adjs[0] === 1 && adjs[1] === 0) {
+            // Continue straight
+        } else if(adjs[0] === 1 && adjs[1] === 1) {
+            dir = Direction.right(dir);
+        } else {
+            // Using the 'left' turn policy for _ #;
+            // turning as normal for _ _.
+            dir = Direction.left(dir);
+            
+        }
+        
+        pos = pos.add(Vector2.fromDirection(dir));
+    } while (!Vector2.equals(firstPos,pos));
+    
+    return result;
+}
+
+function getFirstPoint(coordinates) {
+    for(y = 0; y < 196; y++) {
+        for(x = 0; x < 180; x++) {
+            if(coordinates[y][x] === 1) return new Vector2(x,y);
+        }
+    }
+
+    return false;
+}
+
+// Gets the adjacent pixels in clockwise order oriented correctly for
+// potrace path extension, ordered such that the current pixel is always last
+function getAdjacentPixels(coordinates, p, dir) {
+    // These coordinates are in the expected order if dir === north.
+    // We need to rotate them by one for every step in direction if
+    // direction is anything else to orient them such that the current
+    // pixel is the bottom left, and the adjacent white pixel is to its right
+    var coords = [coordinates[p.y][p.x],   coordinates[p.y][p.x+1],
+                  coordinates[p.y+1][p.x], coordinates[p.y+1][p.x+1]];
+                  
+    while(dir > Direction.north) {
+        var tmp = coords.shift();
+        coords.push(tmp);
+        dir--;  // N.B. currently dir is a value type, so this
+                // does not affect the outer direction.
+    }
+    
+    return coords;
+}
