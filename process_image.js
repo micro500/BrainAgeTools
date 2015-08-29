@@ -371,14 +371,14 @@ var Direction = {
     // Anticlockwise: turn left 90* if looking in this direction
     'left': function(d) {
         d--;
-        if(d<0) return 4-d;
+        if(d<0) return d+4;
         else return d;
     },
     
     // Clockwise: turn right 90* if looking in this direction
     'right': function(d) {
         d++;
-        if(d>4) return d-4;
+        if(d>=4) return d-4;
         else return d;
     },
     
@@ -406,12 +406,14 @@ function findOutline(coordinates) {
         var adjs = getAdjacentPixels(coordinates, pos, dir);
         
         // Invariant: adjs[2] === 0 && adjs[3] === 1
-        // Adjacency ordering:
-        // 1 2     ? ?
-        // 4 3     # _
+        if(adjs[2] !== 0 || adjs[3] !== 1) {
+            console.log("Invariant violated in findOutline");
+        }
         
-        // _ _
-        // # _
+        // Adjacency ordering:
+        // 0 1     ? ?
+        // 3 2     # _
+        
         if(adjs[0] === 1 && adjs[1] === 0) {
             // Continue straight
         } else if(adjs[0] === 1 && adjs[1] === 1) {
@@ -446,8 +448,10 @@ function getAdjacentPixels(coordinates, p, dir) {
     // We need to rotate them by one for every step in direction if
     // direction is anything else to orient them such that the current
     // pixel is the bottom left, and the adjacent white pixel is to its right
-    var coords = [coordinates[p.y][p.x],   coordinates[p.y][p.x+1],
-                  coordinates[p.y+1][p.x], coordinates[p.y+1][p.x+1]];
+    var coords = [coordinates[p.y-1][p.x-1],   coordinates[p.y-1][p.x],
+                  coordinates[p.y][p.x-1], coordinates[p.y][p.x]];
+        
+    var coords_backup = coords;
                   
     while(dir > Direction.north) {
         var tmp = coords.shift();
