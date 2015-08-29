@@ -462,3 +462,31 @@ function getAdjacentPixels(coordinates, p, dir) {
     
     return coords;
 }
+
+function SavePointsImage(points) {
+    var canvas = document.createElement('canvas');
+    canvas.width = 180;
+    canvas.height = 196;
+    var ctx = canvas.getContext("2d");
+
+    var fill_pixel = ctx.createImageData(1, 1);
+    fill_pixel.data[0] = 0x00;
+    fill_pixel.data[1] = 0x00;
+    fill_pixel.data[2] = 0xFF;
+    fill_pixel.data[3] = 0xFF;
+
+    for(var p in points) {
+        ctx.putImageData(fill_pixel, points[p].x, points[p].y);
+    }
+
+    var data = dataURLToBlob(canvas.toDataURL("image/png"));
+
+    var a = $("<a style=\"display: none\">This should never be seen</a>");
+
+    a[0].download = filename.substring(0,filename.length-4) + "_REGION.png";
+    a[0].href = window.URL.createObjectURL(data);
+    a[0].textContent = 'Download ready';
+
+    a[0].dataset.downloadurl = ['text/plain', a.download, a.href].join(':');
+    a[0].click();
+}
