@@ -97,6 +97,7 @@ function process_image(img)
                     good_pixel_array[y+i][x+j] = 1;
                     }
                 }
+				
             draw_pixel_array[y+3][x] = 1;
             }
         }
@@ -285,10 +286,10 @@ function download_coords()
 
     for(var y = 0; y < 196; y++) {
         for(var x = 0; x < 180; x++) {
-        if(draw_pixel_array[y][x] === 1) {
-            data.push(String.fromCharCode(x));
-            data.push(String.fromCharCode(y));
-            }
+			if(draw_pixel_array[y][x] === 1) {
+				data.push(String.fromCharCode(x));
+				data.push(String.fromCharCode(y));
+				}
         }
     }
 
@@ -328,3 +329,4 @@ function dataURLToBlob(dataURL) {
 
     return new Blob([uInt8Array], {type: contentType});
 }
+
