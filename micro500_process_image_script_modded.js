@@ -320,7 +320,7 @@ function download_lua()
     for(var y = 0; y < 196; y++) {
         for(var x = 0; x < 180; x++) {
         if(draw_pixel_array[y][x] === 1) {
-            data.push("touch_data[\"x\"] = " + (245-y) + ";\n");
+            data.push("touch_data[\"x\"] = " + (248-y) + ";\n");
             data.push("touch_data[\"y\"] = " + (x+5) + ";\n");
             data.push("stylus.set(touch_data);\n");
             data.push("emu.frameadvance();\n");
