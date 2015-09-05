@@ -465,26 +465,70 @@ function getAdjacentPixels(coordinates, p, dir) {
     // direction is anything else to orient them such that the current
     // pixel is the bottom left, and the adjacent white pixel is to its right
     
+    var result;
+    
     if (dir == Direction.north)
     {
-        return [coordinates[p.y-1][p.x],   coordinates[p.y-1][p.x+1],
-                coordinates[p.y][p.x+1],   coordinates[p.y][p.x]];
+        if (p.y == 0)
+        {
+            result = [0,                         0,
+                      coordinates[p.y][p.x+1],   coordinates[p.y][p.x]];        
+        }
+        else
+        {
+            result = [coordinates[p.y-1][p.x],   coordinates[p.y-1][p.x+1],
+                      coordinates[p.y][p.x+1],   coordinates[p.y][p.x]];
+        }
     }
     else if (dir == Direction.east)
     {
-        return [coordinates[p.y][p.x+1],   coordinates[p.y+1][p.x+1],
-                coordinates[p.y+1][p.x],   coordinates[p.y][p.x]];
+        if (p.y == 195)
+        {
+            result = [coordinates[p.y][p.x+1],   0,
+                      0,                         coordinates[p.y][p.x]];
+        }
+        else
+        {
+            result = [coordinates[p.y][p.x+1],   coordinates[p.y+1][p.x+1],
+                      coordinates[p.y+1][p.x],   coordinates[p.y][p.x]];
+        }
     }
     else if (dir == Direction.south)
     {
-        return [coordinates[p.y+1][p.x],   coordinates[p.y+1][p.x-1],
-                coordinates[p.y][p.x-1],   coordinates[p.y][p.x]];
+        if (p.y == 195)
+        {
+            result = [0,                         0,
+                      coordinates[p.y][p.x-1],   coordinates[p.y][p.x]];
+        }
+        else
+        {
+            result = [coordinates[p.y+1][p.x],   coordinates[p.y+1][p.x-1],
+                      coordinates[p.y][p.x-1],   coordinates[p.y][p.x]];
+        }
     }
     else
     {
-        return [coordinates[p.y][p.x-1],   coordinates[p.y-1][p.x-1],
-                coordinates[p.y-1][p.x],    coordinates[p.y][p.x]];
+        if (p.y == 0)
+        {
+            result = [coordinates[p.y][p.x-1],   0,
+                      0,                         coordinates[p.y][p.x]];
+        }
+        else
+        {
+            result = [coordinates[p.y][p.x-1],   coordinates[p.y-1][p.x-1],
+                      coordinates[p.y-1][p.x],    coordinates[p.y][p.x]];
+        }
     }
+    
+    for (var i = 0; i < 4; i++)
+    {
+        if (result[i] === undefined)
+        {
+            result[i] = 0;
+        }
+    }
+    
+    return result;
 }
 
 function SavePointsImage(points) {
