@@ -436,6 +436,17 @@ function findOutline(coordinates) {
     return result;
 }
 
+function getAllPoints(coordinates) {
+    var result = [];
+    for(y = 0; y < 196; y++) {
+        for(x = 0; x < 180; x++) {
+            if(coordinates[y][x] === 1) result.push(new Vector2(x,y));
+        }
+    }
+
+    return result;
+}
+
 function getFirstPoint(coordinates) {
     for(y = 0; y < 196; y++) {
         for(x = 0; x < 180; x++) {
