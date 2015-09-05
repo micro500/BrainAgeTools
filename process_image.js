@@ -397,7 +397,7 @@ function findOutline(coordinates) {
     if(!firstPos) { return false; }
     
     var pos = firstPos.add(0,1);
-    var dir = Direction.south;
+    var dir = Direction.west;
     
     result.push(firstPos);
     
@@ -416,8 +416,13 @@ function findOutline(coordinates) {
         
         if(adjs[0] === 1 && adjs[1] === 0) {
             // Continue straight
+            pos = pos.add(Vector2.fromDirection(dir));
         } else if(adjs[0] === 1 && adjs[1] === 1) {
+            pos = pos.add(Vector2.fromDirection(dir));
+            result.push(pos);
+            
             dir = Direction.right(dir);
+            pos = pos.add(Vector2.fromDirection(dir));
         } else {
             // Using the 'left' turn policy for _ #;
             // turning as normal for _ _.
@@ -425,7 +430,7 @@ function findOutline(coordinates) {
             
         }
         
-        pos = pos.add(Vector2.fromDirection(dir));
+        
     } while (!Vector2.equals(firstPos,pos));
     
     return result;
@@ -448,19 +453,27 @@ function getAdjacentPixels(coordinates, p, dir) {
     // We need to rotate them by one for every step in direction if
     // direction is anything else to orient them such that the current
     // pixel is the bottom left, and the adjacent white pixel is to its right
-    var coords = [coordinates[p.y-1][p.x-1],   coordinates[p.y-1][p.x],
-                  coordinates[p.y][p.x-1], coordinates[p.y][p.x]];
-        
-    var coords_backup = coords;
-                  
-    while(dir > Direction.north) {
-        var tmp = coords.shift();
-        coords.push(tmp);
-        dir--;  // N.B. currently dir is a value type, so this
-                // does not affect the outer direction.
-    }
     
-    return coords;
+    if (dir == Direction.north)
+    {
+        return [coordinates[p.y-1][p.x],   coordinates[p.y-1][p.x+1],
+                coordinates[p.y][p.x+1],   coordinates[p.y][p.x]];
+    }
+    else if (dir == Direction.east)
+    {
+        return [coordinates[p.y][p.x+1],   coordinates[p.y+1][p.x+1],
+                coordinates[p.y+1][p.x],   coordinates[p.y][p.x]];
+    }
+    else if (dir == Direction.south)
+    {
+        return [coordinates[p.y+1][p.x],   coordinates[p.y+1][p.x-1],
+                coordinates[p.y][p.x-1],   coordinates[p.y][p.x]];
+    }
+    else
+    {
+        return [coordinates[p.y][p.x-1],   coordinates[p.y-1][p.x-1],
+                coordinates[p.y-1][p.x],    coordinates[p.y][p.x]];
+    }
 }
 
 function SavePointsImage(points) {
