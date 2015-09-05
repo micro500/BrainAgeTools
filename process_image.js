@@ -396,8 +396,8 @@ function findOutline(coordinates) {
     var firstPos = getFirstPoint(coordinates);
     if(!firstPos) { return false; }
     
-    var pos = firstPos.add(0,1);
-    var dir = Direction.west;
+    var pos = firstPos.add(0,0);
+    var dir = Direction.south;
     
     result.push(firstPos);
     
