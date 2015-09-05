@@ -335,9 +335,6 @@ function dataURLToBlob(dataURL) {
 function Vector2(x,y) {
     this.x = x;
     this.y = y;
-
-    this.magnitude = Math.sqrt(x*x + y*y);
-    this.theta = Math.atan2(y,x);
 }
 
 Vector2.equals = function(p1,p2) {
@@ -406,9 +403,9 @@ function findOutline(coordinates) {
         var adjs = getAdjacentPixels(coordinates, pos, dir);
         
         // Invariant: adjs[2] === 0 && adjs[3] === 1
-        if(adjs[2] !== 0 || adjs[3] !== 1) {
-            console.log("Invariant violated in findOutline");
-        }
+        //if(adjs[2] !== 0 || adjs[3] !== 1) {
+        //    console.log("Invariant violated in findOutline");
+        //}
         
         // Adjacency ordering:
         // 0 1     ? ?
