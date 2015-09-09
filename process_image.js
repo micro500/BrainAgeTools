@@ -558,3 +558,117 @@ function SavePointsImage(points) {
     a[0].dataset.downloadurl = ['text/plain', a.download, a.href].join(':');
     a[0].click();
 }
+
+function min_cover(pixels)
+{
+    // Copy our working set
+    // Make a resultset
+    var pixel_copy = [];
+    var result = [];
+    for (var i = 0; i < 196; i++)
+    {
+        pixel_copy[i] = [];
+        result[i] = [];
+        for (var j = 0; j < 180; j++)
+        {
+            pixel_copy[i][j] = pixels[i][j];
+            result[i][j] = 0;
+        }
+    }
+    
+    var point_count = 0;
+  
+    // Start in the lower left corner
+    // Find the first black pixel in our working set
+    // Check right and up in the original copy, see if we need to move backwards 
+    for (var y = 195; y >= 0; y--)
+    {
+        for (var x = 0; x < 180; x++)
+        {
+            if (pixel_copy[y][x] == 1)
+            {
+                // We found the first set pixel
+                var best_x_offset = 3;
+                var best_y_offset = 3;
+                var best_new_count = 0;
+                            
+                // Try all 16 positions that would cover this pixel
+                for (var i = 0; i < 4; i++)
+                {
+                    for (var j = 0; j < 4; j++)
+                    {
+                        var x_offset = -j;
+                        var y_offset = i;
+                        
+                        var cur_x = x + x_offset;
+                        var cur_y = y + y_offset;
+                        
+                        // Make sure this new position is valid (not off screen)
+                        if (cur_x >= 0 && cur_x <= 180-4 && cur_y >= 3 && cur_y < 196)
+                        {
+                            var sum_new = 0;
+                            var sum_old = 0;
+                            
+                            // Check all 16 pixels at this new position
+                            for (var k = 0; k < 4; k++)
+                            {
+                                for (var h = 0; h < 4; h++)
+                                {
+                                    sum_new += pixel_copy[cur_y-k][cur_x+h];
+                                    sum_old += pixels[cur_y-k][cur_x+h];
+                                }
+                            }
+                            
+                            // Make sure we didn't hit a blank pixel in the original copy
+                            if (sum_old == 16)
+                            {
+                                // See if this position is better than our best so far
+                                if (sum_new > best_new_count)
+                                {
+                                    var best_x_y = (3-best_x_offset) + (3-best_y_offset);
+                                    var cur_x_y = (3-i) + (3-j);
+                                    
+                                    if (cur_x_y > best_x_y)
+                                    {
+                                        best_new_count = sum_new;
+                                        best_x_offset = j;
+                                        best_y_offset = i;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                var x_offset = -best_x_offset;
+                var y_offset = best_y_offset;
+                                
+                
+                // With the offsets, make sure all pixels are black
+                if (pixels[y+y_offset][x+x_offset] == 1   && pixels[y+y_offset][x+x_offset+1] == 1   && pixels[y+y_offset][x+x_offset+2] == 1   && pixels[y+y_offset][x+x_offset+3] == 1 &&
+                    pixels[y+y_offset-1][x+x_offset] == 1 && pixels[y+y_offset-1][x+x_offset+1] == 1 && pixels[y+y_offset-1][x+x_offset+2] == 1 && pixels[y+y_offset-1][x+x_offset+3] == 1 &&
+                    pixels[y+y_offset-2][x+x_offset] == 1 && pixels[y+y_offset-2][x+x_offset+1] == 1 && pixels[y+y_offset-2][x+x_offset+2] == 1 && pixels[y+y_offset-2][x+x_offset+3] == 1 &&
+                    pixels[y+y_offset-3][x+x_offset] == 1 && pixels[y+y_offset-3][x+x_offset+1] == 1 && pixels[y+y_offset-3][x+x_offset+2] == 1 && pixels[y+y_offset-3][x+x_offset+3] == 1)
+                {
+                    // Turn these pixels off in the working set
+                    for (var i = 0; i < 4; i++)
+                    {
+                        for (var j = 0; j < 4; j++)
+                        {
+                            pixel_copy[y+y_offset-i][x+x_offset+j] = 0;
+                        }
+                    }
+                    result[y+y_offset][x+x_offset] = 1;
+                    point_count++;
+                }
+                else
+                {
+                    console.log("this shouldn't happen");
+                }
+            }
+        }
+    }
+    console.log("Points needed: " + point_count)
+    
+    return result;
+}
