@@ -304,7 +304,7 @@ function download_coords()
     a[0].click();
 }
 
-function download_lua()
+function download_lua(coordinates)
 {
     // Creates a lua script to input all coordinates
     var data = [];
@@ -319,7 +319,7 @@ function download_lua()
 
     for(var y = 0; y < 196; y++) {
         for(var x = 0; x < 180; x++) {
-        if(draw_pixel_array[y][x] === 1) {
+        if(coordinates[y][x] === 1) {
             data.push("touch_data[\"x\"] = " + (248-y) + ";\n");
             data.push("touch_data[\"y\"] = " + (x+5) + ";\n");
             data.push("stylus.set(touch_data);\n");
