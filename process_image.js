@@ -306,6 +306,48 @@ function download_coords()
     a[0].click();
 }
 
+function download_lua(coordinates)
+{
+    // Creates a lua script to input all coordinates
+    var data = [];
+    data.push("local off_screen = { };\n");
+    data.push("off_screen[\"x\"] = 150;\n");
+    data.push("off_screen[\"y\"] = 0;\n");
+    data.push("off_screen[\"touch\"] = true ;\n\n");
+    data.push("local touch_data = { };\n");
+    data.push("touch_data[\"touch\"] = true ;\n\n");
+    
+    var ix = 0;
+
+    for(var y = 0; y < 196; y++) {
+        for(var x = 0; x < 180; x++) {
+        if(coordinates[y][x] === 1) {
+            data.push("touch_data[\"x\"] = " + (248-y) + ";\n");
+            data.push("touch_data[\"y\"] = " + (x+5) + ";\n");
+            data.push("stylus.set(touch_data);\n");
+            data.push("emu.frameadvance();\n");
+            data.push("stylus.set(touch_data);\n");
+            data.push("emu.frameadvance();\n");
+            data.push("stylus.set(off_screen);\n");
+            data.push("emu.frameadvance();\n");
+            }
+        }
+    }
+    data.push("emu.pause();\n");
+
+    var file = new Blob(data);
+
+    var a = $("<a style=\"display: none\">This should never be seen</a>");
+
+    a[0].download = filename.substring(0,filename.length-4) + "_LUA.lua";
+    a[0].href = window.URL.createObjectURL(file);
+    a[0].textContent = 'Download ready';
+
+    a[0].dataset.downloadurl = ['text/plain', a.download, a.href].join(':');
+    a[0].click();
+}
+
+
 
 function dataURLToBlob(dataURL) {
     var BASE64_MARKER = ';base64,';
