@@ -371,6 +371,30 @@ function dataURLToBlob(dataURL) {
     return new Blob([uInt8Array], {type: contentType});
 }
 
+function dataURLToUint8Array(dataURL) {
+    var BASE64_MARKER = ';base64,';
+    if (dataURL.indexOf(BASE64_MARKER) == -1) {
+        var parts = dataURL.split(',');
+        var contentType = parts[0].split(':')[1];
+        var raw = decodeURIComponent(parts[1]);
+
+        return raw;
+    }
+
+    var parts = dataURL.split(BASE64_MARKER);
+    var contentType = parts[0].split(':')[1];
+    var raw = window.atob(parts[1]);
+    var rawLength = raw.length;
+
+    var uInt8Array = new Uint8Array(rawLength);
+
+    for (var i = 0; i < rawLength; ++i) {
+        uInt8Array[i] = raw.charCodeAt(i);
+    }
+
+    return uInt8Array;
+}
+
 function find_shapes(coordinates)
 {
     var copy = [];
@@ -467,7 +491,20 @@ function find_first_pixel(coordinates)
     return false;
 }
 
+function getBlob(canvas)
+{
+    return dataURLToBlob(canvas.toDataURL("image/png"));
+}
+
 function SaveCoordsImage(coordinates) {
+    var canvas = CoordsToCanvas(coordinates)
+
+    var data = getBlob(canvas);
+    
+    downloadBlob(data, filename.substring(0,filename.length-4) + "_REGION.png")
+}
+
+function CoordsToCanvas(coordinates) {
     var canvas = document.createElement('canvas');
     canvas.width = 180;
     canvas.height = 196;
@@ -489,15 +526,33 @@ function SaveCoordsImage(coordinates) {
             }
         }
     }
+    
+    return canvas;
+}
 
-    var data = dataURLToBlob(canvas.toDataURL("image/png"));
-
+function downloadBlob(blob, filename)
+{
     var a = $("<a style=\"display: none\">This should never be seen</a>");
 
-    a[0].download = filename.substring(0,filename.length-4) + "_REGION.png";
-    a[0].href = window.URL.createObjectURL(data);
+    a[0].download = filename;
+    a[0].href = window.URL.createObjectURL(blob);
     a[0].textContent = 'Download ready';
 
     a[0].dataset.downloadurl = ['text/plain', a.download, a.href].join(':');
     a[0].click();
 }
+
+function SaveShapes(shapes)
+{
+    var zip = new JSZip();
+    
+    for(var i in shapes) {
+        var canvas = CoordsToCanvas(shapes[i]);
+        zip.file(filename.substring(0,filename.length-4) + "_REGION_" + (parseInt(i)+1) + ".png",dataURLToUint8Array(canvas.toDataURL("image/png")));
+    }
+    
+    console.log(zip.files)
+    var content = zip.generate({type:"blob"});
+    downloadBlob(content,filename.substring(0,filename.length-4) + "_REGION.zip");
+}  
+
