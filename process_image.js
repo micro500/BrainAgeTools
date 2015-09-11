@@ -497,24 +497,24 @@ function getBlob(canvas)
 }
 
 function SaveCoordsImage(coordinates) {
-    var canvas = CoordsToCanvas(coordinates)
+    var canvas = CoordsToCanvas(coordinates, 0, 0, 0, 0xFF)
 
     var data = getBlob(canvas);
     
     downloadBlob(data, filename.substring(0,filename.length-4) + "_REGION.png")
 }
 
-function CoordsToCanvas(coordinates) {
+function CoordsToCanvas(coordinates, r, g, b, a) {
     var canvas = document.createElement('canvas');
     canvas.width = 180;
     canvas.height = 196;
     var ctx = canvas.getContext("2d");
 
     var fill_pixel = ctx.createImageData(1, 1);
-    fill_pixel.data[0] = 0x00;
-    fill_pixel.data[1] = 0x00;
-    fill_pixel.data[2] = 0xFF;
-    fill_pixel.data[3] = 0xFF;
+    fill_pixel.data[0] = r;
+    fill_pixel.data[1] = g;
+    fill_pixel.data[2] = b;
+    fill_pixel.data[3] = a;
 
     for (var y = 0; y < 196; y++)
     {
@@ -547,12 +547,12 @@ function SaveShapes(shapes)
     var zip = new JSZip();
     
     for(var i in shapes) {
-        var canvas = CoordsToCanvas(shapes[i]);
+        var canvas = CoordsToCanvas(shapes[i], 0, 0, 0, 0xFF);
         zip.file(filename.substring(0,filename.length-4) + "_REGION_" + (parseInt(i)+1) + ".png",dataURLToUint8Array(canvas.toDataURL("image/png")));
     }
     
     console.log(zip.files)
     var content = zip.generate({type:"blob"});
-    downloadBlob(content,filename.substring(0,filename.length-4) + "_REGION.zip");
+    downloadBlob(content,filename.substring(0,filename.length-4) + "_SHAPES.zip");
 }  
 
