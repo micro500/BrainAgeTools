@@ -371,3 +371,133 @@ function dataURLToBlob(dataURL) {
     return new Blob([uInt8Array], {type: contentType});
 }
 
+function find_shapes(coordinates)
+{
+    var copy = [];
+    for (var y = 0; y < 196; y++)
+    {
+        copy[y] = [];
+        for (var x = 0; x < 180; x++)
+        {
+            copy[y][x] = coordinates[y][x];
+        }
+    }
+    
+    var result = [];
+    
+    var temp;
+    while (temp = find_shape(copy))
+    {
+        result.push(temp);
+        for (var y = 0; y < 196; y++)
+        {
+            for (var x = 0; x < 180; x++)
+            {
+                if (temp[y][x] == 1)
+                {
+                    copy[y][x] = 0;
+                }
+            }
+        }
+    }
+  
+    return result;
+}
+
+function find_shape(coordinates)
+{
+    var result = [];
+    for (var y = 0; y < 196; y++)
+    {
+        result[y] = [];
+        for (var x = 0; x < 180; x++)
+        {
+            result[y][x] = 0;
+        }
+    }
+    
+    var first_pixel = find_first_pixel(coordinates);
+    if (!first_pixel)
+    {
+        return false;
+    }
+    
+    result = flood_copy(result, coordinates, first_pixel.x, first_pixel.y);
+    
+    return result;
+}
+
+function flood_copy(to, from, x, y)
+{
+    if (x < 0 || x > 179 || y < 0 || y > 195)
+    {
+        return to;
+    }
+    if (from[y][x] != 1 || to[y][x] == 1)
+    {
+        return to;
+    }
+    
+    to[y][x] = 1;
+    to = flood_copy(to, from, x-1, y-1)
+    to = flood_copy(to, from, x, y-1)
+    to = flood_copy(to, from, x+1, y-1)
+    to = flood_copy(to, from, x-1, y)
+    
+    to = flood_copy(to, from, x+1, y)
+    to = flood_copy(to, from, x-1, y+1)
+    to = flood_copy(to, from, x, y+1)
+    to = flood_copy(to, from, x+1, y+1)
+    
+    return to;
+}
+
+function find_first_pixel(coordinates)
+{
+    for (var y = 0; y < 196; y++)
+    {
+        for (var x = 0; x < 180; x++)
+        {
+            if (coordinates[y][x] == 1)
+            {
+                return {x: x, y: y};
+            }
+        }
+    }
+    return false;
+}
+
+function SaveCoordsImage(coordinates) {
+    var canvas = document.createElement('canvas');
+    canvas.width = 180;
+    canvas.height = 196;
+    var ctx = canvas.getContext("2d");
+
+    var fill_pixel = ctx.createImageData(1, 1);
+    fill_pixel.data[0] = 0x00;
+    fill_pixel.data[1] = 0x00;
+    fill_pixel.data[2] = 0xFF;
+    fill_pixel.data[3] = 0xFF;
+
+    for (var y = 0; y < 196; y++)
+    {
+        for (var x = 0; x < 180; x++)
+        {
+            if (coordinates[y][x] == 1)
+            {
+                ctx.putImageData(fill_pixel, x, y);
+            }
+        }
+    }
+
+    var data = dataURLToBlob(canvas.toDataURL("image/png"));
+
+    var a = $("<a style=\"display: none\">This should never be seen</a>");
+
+    a[0].download = filename.substring(0,filename.length-4) + "_REGION.png";
+    a[0].href = window.URL.createObjectURL(data);
+    a[0].textContent = 'Download ready';
+
+    a[0].dataset.downloadurl = ['text/plain', a.download, a.href].join(':');
+    a[0].click();
+}
