@@ -840,8 +840,8 @@ function getBlob(canvas)
     return dataURLToBlob(canvas.toDataURL("image/png"));
 }
 
-function SaveCoordsImage(coordinates) {
-    var canvas = CoordsToCanvas(coordinates, 0, 0, 0, 0xFF)
+function SaveCoordsImage(coordinates, r, g, b, a) {
+    var canvas = CoordsToCanvas(coordinates, r, g, b, a)
 
     var data = getBlob(canvas);
     
