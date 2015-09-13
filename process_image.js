@@ -11,8 +11,278 @@ $(function() {
     $("#show_border,#show_good_pixels,#show_bad_pixels").change(function(event) {
         update_image();
     });
+    
+    $("#copy_draw_to_grid_btn").click(function() {
+      copy_draw_pixels();
+    });
+    
+    $("#coords_canvas").click(function(event) {
+      var multiple = parseInt($("#multiple").val())
+      var canvas = $("#coords_canvas")[0];
+      var mousePos = getMousePos(canvas, event);
+      $("#coords_textbox").val($("#coords_textbox").val() + (Math.floor(mousePos.x/multiple)) + "," + (Math.floor(mousePos.y/multiple)) + "\n");
+      process_coords_list()
+    });
 });
+
+function process_coords_list()
+{
+  copy_draw_pixels();
+  
+  var canvas = document.getElementById('coords_canvas');
+  var ctx = canvas.getContext('2d');
+
+  var multiple = parseInt($("#multiple").val());
+  var pixel_size = multiple-1
+
+  var first_pixel = ctx.createImageData(pixel_size, pixel_size);
+  for (var i = 0; i < pixel_size*pixel_size; i++)
+  {
+    first_pixel.data[i*4] = 0x00;
+    first_pixel.data[i*4+1] = 0xFF;
+    first_pixel.data[i*4+2] = 0x00;
+    first_pixel.data[i*4+3] = 0xFF;
+  }
+  var control_pixel = ctx.createImageData(pixel_size, pixel_size);
+  for (var i = 0; i < pixel_size*pixel_size; i++)
+  {
+    control_pixel.data[i*4] = 0xFF;
+    control_pixel.data[i*4+1] = 0xFF;
+    control_pixel.data[i*4+2] = 0x00;
+    control_pixel.data[i*4+3] = 0xFF;
+  }
+  var mid_pixel = ctx.createImageData(pixel_size, pixel_size);
+  for (var i = 0; i < pixel_size*pixel_size; i++)
+  {
+    mid_pixel.data[i*4] = 0x00;
+    mid_pixel.data[i*4+1] = 0x00;
+    mid_pixel.data[i*4+2] = 0xFF;
+    mid_pixel.data[i*4+3] = 0xFF;
+  }
+  var end_pixel = ctx.createImageData(pixel_size, pixel_size);
+  for (var i = 0; i < pixel_size*pixel_size; i++)
+  {
+    end_pixel.data[i*4] = 0xFF;
+    end_pixel.data[i*4+1] = 0x00;
+    end_pixel.data[i*4+2] = 0x00;
+    end_pixel.data[i*4+3] = 0xFF;
+  }
+  
+  // line by line in coords
+  // get x and y
+  // if first point, draw a green pixel
+  // if not, draw yellow
+  // mid points, draw blue
+  var line_started = false;
+  var lines = $("#coords_textbox").val().split("\n");
+  var prev_x = 0;
+  var prev_y = 0;
+  for (var i = 0; i < lines.length; i++)
+  {
+    if (lines[i]!= "")
+    {
+      var values = lines[i].split(",");
+
+      if (values.length < 2)
+      {
+        console.log("Illegal line: " + lines[i]);
+        continue;
+      }
+
+      var x = parseInt(values[0]);
+      var y = parseInt(values[1]);
       
+      if (x < 0 || x > 179 || y < 0 || y > 195)
+      {
+        console.log("Illegal coord: " + x + ", " + y);
+        continue;
+      }
+
+      if (line_started)
+      {
+        var dist_x = x - prev_x;
+        var dist_y = y - prev_y;
+        if (dist_x == 0)
+        {
+          // vertical line
+          if (Math.abs(dist_y) > 1)
+          {
+            if (prev_y < y)
+            {
+              // down
+              for (var new_y = prev_y + 1; new_y < y; new_y++)
+              {
+                ctx.putImageData(mid_pixel, x*multiple, new_y*multiple);
+              }
+            }
+            else
+            {
+              // up
+              for (var new_y = y + 1; new_y < prev_y; new_y++)
+              {
+                ctx.putImageData(mid_pixel, x*multiple, new_y*multiple);
+              }
+            }
+          }
+        }
+        else if (dist_y == 0)
+        {
+          // horizontal line
+          if (Math.abs(dist_x) > 1)
+          {
+            if (prev_x < x)
+            {
+              // down
+              for (var new_x = prev_x + 1; new_x < x; new_x++)
+              {
+                ctx.putImageData(mid_pixel, new_x*multiple, y*multiple);
+              }
+            }
+            else
+            {
+              // up
+              for (var new_x = x + 1; new_x < prev_x; new_x++)
+              {
+                ctx.putImageData(mid_pixel, new_x*multiple, y*multiple);
+              }
+            }
+          }
+        }
+        else if (Math.abs(dist_x) == Math.abs(dist_y))
+        {
+          // diagonal
+          if (Math.abs(dist_x) > 1)
+          {
+            // UL -> DR
+            if (dist_x > 0 && dist_y > 0)
+            {
+              for (var offset = 1; offset < Math.abs(dist_x); offset++)
+              {
+                ctx.putImageData(mid_pixel, (prev_x+offset)*multiple, (prev_y+offset)*multiple);
+              }
+            }
+            // DR -> UL
+            else if (dist_x < 0 && dist_y < 0)
+            {
+              for (var offset = 1; offset < Math.abs(dist_x); offset++)
+              {
+                ctx.putImageData(mid_pixel, (prev_x-offset)*multiple, (prev_y-offset)*multiple);
+              }
+            }
+            // DL -> UR
+            else if (dist_x > 0 && dist_y < 0)
+            {
+              for (var offset = 1; offset < Math.abs(dist_x); offset++)
+              {
+                ctx.putImageData(mid_pixel, (prev_x+offset)*multiple, (prev_y-offset)*multiple);
+              }
+            }
+            // UR -> DL
+            else if (dist_x < 0 && dist_y > 0)
+            {
+              for (var offset = 1; offset < Math.abs(dist_x); offset++)
+              {
+                ctx.putImageData(mid_pixel, (prev_x-offset)*multiple, (prev_y+offset)*multiple);
+              }
+            }
+          }
+        }
+        else
+        {
+          // illegal
+          console.log("illegal coord: (" + x + "," + y + ") " + dist_x + " " + dist_y)
+        }
+
+        ctx.putImageData(control_pixel, x*multiple, y*multiple);
+      }
+      else
+      {
+        ctx.putImageData(first_pixel, x*multiple, y*multiple);
+        line_started = true;
+      }
+      
+      prev_x = x;
+      prev_y = y;
+    }
+    else
+    {
+        // change prev pixel to end pixel
+        ctx.putImageData(end_pixel, prev_x*multiple, prev_y*multiple);
+        line_started = false;
+    }
+  }
+}
+
+function copy_draw_pixels()
+{
+  var canvas = document.getElementById('coords_canvas');
+  var ctx = canvas.getContext('2d');
+
+  resize_grid_canvas()
+  var multiple = parseInt($("#multiple").val());
+
+  var fill_pixel = ctx.createImageData(multiple, multiple);
+  for (var i = 0; i < multiple*multiple; i++)
+  {
+    fill_pixel.data[i*4] = 0x00;
+    fill_pixel.data[i*4+1] = 0x00;
+    fill_pixel.data[i*4+2] = 0x00;
+    fill_pixel.data[i*4+3] = 0xFF;
+  }
+  
+  for (var y = 0; y < 196; y++)
+  {
+    for (var x = 0; x < 180; x++)
+    {
+      if (draw_pixel_array[y][x] == 1)
+      {
+        ctx.putImageData(fill_pixel, x*multiple, y*multiple);
+      }
+    }
+  }
+  
+  draw_grid()
+
+}
+
+function resize_grid_canvas()
+{
+    var multiple = parseInt($("#multiple").val());
+    $("#coords_canvas").attr("width",180*multiple).attr("height",196*multiple);
+}
+
+function draw_grid()
+{
+    var multiple = parseInt($("#multiple").val());
+    var canvas = document.getElementById('coords_canvas');
+    var ctx = canvas.getContext('2d');
+
+    ctx.strokeStyle = "#dedfde";
+    for (var x = 0; x < 180; x++)
+    {
+      ctx.beginPath();
+      ctx.moveTo((x+1)*multiple-.5,0);
+      ctx.lineTo((x+1)*multiple-1,196*multiple);
+      ctx.stroke();
+    }
+    
+    for (var y = 0; y < 196; y++)
+    {
+      ctx.beginPath();
+      ctx.moveTo(0, (y+1)*multiple-.5);
+      ctx.lineTo(180*multiple, (y+1)*multiple-.5);
+      ctx.stroke();
+    }
+}
+
+function getMousePos(canvas, evt) {
+  var rect = canvas.getBoundingClientRect();
+  return {
+    x: Math.round((evt.clientX-rect.left)/(rect.right-rect.left)*canvas.width),
+    y: Math.round((evt.clientY-rect.top)/(rect.bottom-rect.top)*canvas.height)
+  };
+}
+
 var filename;        
 var in_pixel_array = [];
 var good_pixel_array = [];
