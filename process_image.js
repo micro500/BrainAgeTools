@@ -1,4 +1,4 @@
-$(function() {      
+$(function() {
     $("#open_file_btn").click(function() {
         $("#hidden_file_select_btn").click();
     });
@@ -13,61 +13,171 @@ $(function() {
     });
     
     $("#copy_draw_to_grid_btn").click(function() {
-      copy_draw_pixels();
+        resize_grid_canvas()
+        
+        clear_small_canvas()
+        copy_pixel_array(draw_pixel_array, 0x00, 0x00, 0x00, 0xff)
+        
+        copy_small_to_big();
+        draw_grid()
+
     });
     
     $("#coords_canvas").click(function(event) {
-      var multiple = parseInt($("#multiple").val())
       var canvas = $("#coords_canvas")[0];
       var mousePos = getMousePos(canvas, event);
       $("#coords_textbox").val($("#coords_textbox").val() + (Math.floor(mousePos.x/multiple)) + "," + (Math.floor(mousePos.y/multiple)) + "\n");
+      clear_small_canvas()
+      clear_large_canvas()
       process_coords_list()
+      copy_pixel_array(good_pixel_array, 0xaf, 0xaf, 0xaf, 0xff)
+      copy_pixel_array(draw_pixel_array, 0x00, 0x00, 0x00, 0xff)
+      add_expanded_paths()
+      draw_paths()
+      copy_small_to_big();
+      draw_grid()
     });
+    
+    multiple = parseInt($("#multiple").val());
 });
+
+function add_expanded_paths()
+{
+  var canvas = document.getElementById('small_coords_canvas');
+  var ctx = canvas.getContext('2d');
+
+  var light_pixel = ctx.createImageData(1, 1);
+  light_pixel.data[0] = 0xc3
+  light_pixel.data[1] = 0xd5
+  light_pixel.data[2] = 0xc3
+  light_pixel.data[3] = 0xff
+  
+  var dark_pixel = ctx.createImageData(1, 1);
+  dark_pixel.data[0] = 0x6f
+  dark_pixel.data[1] = 0x81
+  dark_pixel.data[2] = 0x6f
+  dark_pixel.data[3] = 0xff
+  
+  for (var y = 0; y < 196; y++)
+  {
+    for (var x = 0; x < 180; x++)
+    {
+      if (expanded_paths_pixel_array[y][x] == 1)
+      {
+        if (draw_pixel_array[y][x] == 1)
+        {
+            ctx.putImageData(dark_pixel, x, y);
+        }
+        else
+        {
+            ctx.putImageData(light_pixel, x, y);
+        }
+      }
+    }
+  }
+}
+
+
+var multiple;
+var png = document.createElement('img');
+
+
+function download_coordlist_lua(coordinates)
+{
+    // Creates a lua script to input all coordinates
+    var data = [];
+    data.push("local off_screen = { };\n");
+    data.push("off_screen[\"x\"] = 150;\n");
+    data.push("off_screen[\"y\"] = 0;\n");
+    data.push("off_screen[\"touch\"] = true ;\n\n");
+    data.push("local touch_data = { };\n");
+    data.push("touch_data[\"touch\"] = true ;\n\n");
+    
+    var ix = 0;
+    
+    var lines = $("#coords_textbox").val().split("\n");
+
+    for (var i = 0; i < lines.length; i++)
+    {
+        if (lines[i]!= "")
+        {
+            var values = lines[i].split(",");
+
+            if (values.length < 2)
+            {
+              console.log("Illegal line: " + lines[i]);
+              continue;
+            }
+
+            var x = parseInt(values[0]);
+            var y = parseInt(values[1]);
+            
+            if (x < 0 || x > 179 || y < 0 || y > 195)
+            {
+              console.log("Illegal coord: " + x + ", " + y);
+              continue;
+            }
+
+          
+            data.push("touch_data[\"x\"] = " + (248-y) + ";\n");
+            data.push("touch_data[\"y\"] = " + (x+5) + ";\n");
+            data.push("stylus.set(touch_data);\n");
+            data.push("emu.frameadvance();\n");
+        }
+        else
+        {
+            data.push("stylus.set(off_screen);\n");
+            data.push("emu.frameadvance();\n");
+        }
+    }
+    
+    data.push("emu.pause();\n");
+
+    var file = new Blob(data);
+
+    var a = $("<a style=\"display: none\">This should never be seen</a>");
+
+    a[0].download = filename.substring(0,filename.length-4) + "_LUA.lua";
+    a[0].href = window.URL.createObjectURL(file);
+    a[0].textContent = 'Download ready';
+
+    a[0].dataset.downloadurl = ['text/plain', a.download, a.href].join(':');
+    a[0].click();
+}
+
+
+var start_points = [];
+var mid_points = [];
+var control_points = [];
+var end_points = [];
 
 function process_coords_list()
 {
-  copy_draw_pixels();
-  
-  var canvas = document.getElementById('coords_canvas');
-  var ctx = canvas.getContext('2d');
+  for (var i = 0; i < 196; i++)
+  {
+      start_points[i] = [];
+      mid_points[i] = [];
+      control_points[i] = [];
+      end_points[i] = [];
+      for (var j = 0; j < 180; j++)
+      {
+          start_points[i][j] = 0;
+          mid_points[i][j] = 0;
+          control_points[i][j] = 0;
+          end_points[i][j] = 0;
+      }
+  }
+    
+  paths_pixel_array = [];
+  for (var i = 0; i < 196; i++)
+  {
+      paths_pixel_array[i] = [];
+      for (var j = 0; j < 180; j++)
+      {
+          paths_pixel_array[i][j] = 0;
+      }
+  }
 
-  var multiple = parseInt($("#multiple").val());
-  var pixel_size = multiple-1
-
-  var first_pixel = ctx.createImageData(pixel_size, pixel_size);
-  for (var i = 0; i < pixel_size*pixel_size; i++)
-  {
-    first_pixel.data[i*4] = 0x00;
-    first_pixel.data[i*4+1] = 0xFF;
-    first_pixel.data[i*4+2] = 0x00;
-    first_pixel.data[i*4+3] = 0xFF;
-  }
-  var control_pixel = ctx.createImageData(pixel_size, pixel_size);
-  for (var i = 0; i < pixel_size*pixel_size; i++)
-  {
-    control_pixel.data[i*4] = 0xFF;
-    control_pixel.data[i*4+1] = 0xFF;
-    control_pixel.data[i*4+2] = 0x00;
-    control_pixel.data[i*4+3] = 0xFF;
-  }
-  var mid_pixel = ctx.createImageData(pixel_size, pixel_size);
-  for (var i = 0; i < pixel_size*pixel_size; i++)
-  {
-    mid_pixel.data[i*4] = 0x00;
-    mid_pixel.data[i*4+1] = 0x00;
-    mid_pixel.data[i*4+2] = 0xFF;
-    mid_pixel.data[i*4+3] = 0xFF;
-  }
-  var end_pixel = ctx.createImageData(pixel_size, pixel_size);
-  for (var i = 0; i < pixel_size*pixel_size; i++)
-  {
-    end_pixel.data[i*4] = 0xFF;
-    end_pixel.data[i*4+1] = 0x00;
-    end_pixel.data[i*4+2] = 0x00;
-    end_pixel.data[i*4+3] = 0xFF;
-  }
-  
   // line by line in coords
   // get x and y
   // if first point, draw a green pixel
@@ -112,7 +222,8 @@ function process_coords_list()
               // down
               for (var new_y = prev_y + 1; new_y < y; new_y++)
               {
-                ctx.putImageData(mid_pixel, x*multiple, new_y*multiple);
+                mid_points[new_y][x] = 1;
+                paths_pixel_array[new_y][x] = 1;
               }
             }
             else
@@ -120,7 +231,8 @@ function process_coords_list()
               // up
               for (var new_y = y + 1; new_y < prev_y; new_y++)
               {
-                ctx.putImageData(mid_pixel, x*multiple, new_y*multiple);
+                mid_points[new_y][x] = 1;
+                paths_pixel_array[new_y][x] = 1;
               }
             }
           }
@@ -135,7 +247,8 @@ function process_coords_list()
               // down
               for (var new_x = prev_x + 1; new_x < x; new_x++)
               {
-                ctx.putImageData(mid_pixel, new_x*multiple, y*multiple);
+                mid_points[y][new_x] = 1;
+                paths_pixel_array[y][new_x] = 1;
               }
             }
             else
@@ -143,7 +256,8 @@ function process_coords_list()
               // up
               for (var new_x = x + 1; new_x < prev_x; new_x++)
               {
-                ctx.putImageData(mid_pixel, new_x*multiple, y*multiple);
+                mid_points[y][new_x] = 1;
+                paths_pixel_array[y][new_x] = 1;
               }
             }
           }
@@ -158,7 +272,8 @@ function process_coords_list()
             {
               for (var offset = 1; offset < Math.abs(dist_x); offset++)
               {
-                ctx.putImageData(mid_pixel, (prev_x+offset)*multiple, (prev_y+offset)*multiple);
+                mid_points[prev_y+offset][prev_x+offset] = 1;
+                paths_pixel_array[prev_y+offset][prev_x+offset] = 1;
               }
             }
             // DR -> UL
@@ -166,7 +281,8 @@ function process_coords_list()
             {
               for (var offset = 1; offset < Math.abs(dist_x); offset++)
               {
-                ctx.putImageData(mid_pixel, (prev_x-offset)*multiple, (prev_y-offset)*multiple);
+                mid_points[prev_y-offset][prev_x-offset] = 1;
+                paths_pixel_array[prev_y-offset][prev_x-offset] = 1;
               }
             }
             // DL -> UR
@@ -174,7 +290,8 @@ function process_coords_list()
             {
               for (var offset = 1; offset < Math.abs(dist_x); offset++)
               {
-                ctx.putImageData(mid_pixel, (prev_x+offset)*multiple, (prev_y-offset)*multiple);
+                mid_points[prev_y-offset][prev_x+offset] = 1;
+                paths_pixel_array[prev_y-offset][prev_x+offset] = 1;
               }
             }
             // UR -> DL
@@ -182,7 +299,8 @@ function process_coords_list()
             {
               for (var offset = 1; offset < Math.abs(dist_x); offset++)
               {
-                ctx.putImageData(mid_pixel, (prev_x-offset)*multiple, (prev_y+offset)*multiple);
+                mid_points[prev_y+offset][prev_x-offset] = 1;
+                paths_pixel_array[prev_y+offset][prev_x-offset] = 1;
               }
             }
           }
@@ -193,11 +311,20 @@ function process_coords_list()
           console.log("illegal coord: (" + x + "," + y + ") " + dist_x + " " + dist_y)
         }
 
-        ctx.putImageData(control_pixel, x*multiple, y*multiple);
+        if (lines[i+1] == "")
+        {
+            end_points[y][x] = 1;
+        }
+        else
+        {
+            control_points[y][x] = 1;
+        }
+        paths_pixel_array[y][x] = 1;
       }
       else
       {
-        ctx.putImageData(first_pixel, x*multiple, y*multiple);
+        start_points[y][x] = 1;
+        paths_pixel_array[y][x] = 1;
         line_started = true;
       }
       
@@ -206,59 +333,187 @@ function process_coords_list()
     }
     else
     {
-        // change prev pixel to end pixel
-        ctx.putImageData(end_pixel, prev_x*multiple, prev_y*multiple);
+        /*// change prev pixel to end pixel
+        end_points[prev_y][prev_x] = 1;
+        control_points[prev_y][prev_x] = 1;
+        paths_pixel_array[prev_y][prev_x] = 1;*/
         line_started = false;
     }
   }
+  
+  
+  expanded_paths_pixel_array = [];
+  for (var y = 0; y < 196; y++)
+  {
+      expanded_paths_pixel_array[y] = [];
+      for (var x = 0; x < 180; x++)
+      {
+          expanded_paths_pixel_array[y][x] = 0;
+      }
+  }
+
+  
+  // Expand the paths array into 4x4 pixels
+  for (var y = 0; y < 196; y++)
+  {
+      for (var x = 0; x < 180; x++)
+      {
+          if (paths_pixel_array[y][x] == 1)
+          {
+              for (var i = 0; i < 4; i++)
+              {
+                  for (var j = 0; j < 4; j++)
+                  {
+                      expanded_paths_pixel_array[Math.max(y-i,0)][Math.min(x+j,179)] = 1;
+                  }
+              }
+          }
+      }
+  }
+  
+  remaining_good_pixels = [];
+  for (var y = 0; y < 196; y++)
+  {
+      remaining_good_pixels[y] = [];
+      for (var x = 0; x < 180; x++)
+      {
+          remaining_good_pixels[y][x] = 0;
+      }
+  }
+  
+  // remove the expanded pixels from the good array, see what is left
+  // do a modified min-cover
+  for (var y = 0; y < 196; y++)
+  {
+      for (var x = 0; x < 180; x++)
+      {
+          if (good_pixel_array[y][x] == 1 && expanded_paths_pixel_array[y][x] == 0)
+          {
+              remaining_good_pixels[y][x] = 1;
+          }
+      }
+  }
+  
+  
 }
 
-function copy_draw_pixels()
+function draw_paths()
 {
-  var canvas = document.getElementById('coords_canvas');
+  var canvas = document.getElementById('small_coords_canvas');
   var ctx = canvas.getContext('2d');
 
-  resize_grid_canvas()
-  var multiple = parseInt($("#multiple").val());
+  var first_pixel = ctx.createImageData(1, 1);
+  first_pixel.data[0] = 0x00;
+  first_pixel.data[1] = 0xFF;
+  first_pixel.data[2] = 0x00;
+  first_pixel.data[3] = 0xFF;
 
-  var fill_pixel = ctx.createImageData(multiple, multiple);
-  for (var i = 0; i < multiple*multiple; i++)
+  var control_pixel = ctx.createImageData(1, 1);
+  control_pixel.data[0] = 0xFF;
+  control_pixel.data[1] = 0xFF;
+  control_pixel.data[2] = 0x00;
+  control_pixel.data[3] = 0xFF;
+  
+  var mid_pixel = ctx.createImageData(1, 1);
+  mid_pixel.data[0] = 0x00;
+  mid_pixel.data[1] = 0x00;
+  mid_pixel.data[2] = 0xFF;
+  mid_pixel.data[3] = 0xFF;
+  
+  var end_pixel = ctx.createImageData(1, 1);
+  end_pixel.data[0] = 0xFF;
+  end_pixel.data[1] = 0x00;
+  end_pixel.data[2] = 0x00;
+  end_pixel.data[3] = 0xFF;
+  
+  for (var y = 0; y < 196; y++)
   {
-    fill_pixel.data[i*4] = 0x00;
-    fill_pixel.data[i*4+1] = 0x00;
-    fill_pixel.data[i*4+2] = 0x00;
-    fill_pixel.data[i*4+3] = 0xFF;
+      for (var x = 0; x < 180; x++)
+      {
+          if (end_points[y][x] == 1)
+          {
+              ctx.putImageData(end_pixel, x, y);
+          }
+          else if (start_points[y][x] == 1)
+          {
+              ctx.putImageData(first_pixel, x, y);
+          }
+          else if (control_points[y][x] == 1)
+          {
+              ctx.putImageData(control_pixel, x, y);
+          }
+          else if (mid_points[y][x] == 1)
+          {
+              ctx.putImageData(mid_pixel, x, y);
+          }
+      }
   }
+}
+
+function copy_small_to_big()
+{
+  var small_canvas = document.getElementById('small_coords_canvas');
+
+  png.src = small_canvas.toDataURL('image/png');
+  
+  var large_canvas = document.getElementById('coords_canvas');
+  var ctx = large_canvas.getContext('2d');
+  
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(png, 0, 0, 180*multiple, 196*multiple)
+}
+
+function copy_pixel_array(pixels, r, g, b, a)
+{
+  var canvas = document.getElementById('small_coords_canvas');
+  var ctx = canvas.getContext('2d');
+
+  var fill_pixel = ctx.createImageData(1, 1);
+  fill_pixel.data[0] = r;
+  fill_pixel.data[1] = g;
+  fill_pixel.data[2] = b;
+  fill_pixel.data[3] = a;
   
   for (var y = 0; y < 196; y++)
   {
     for (var x = 0; x < 180; x++)
     {
-      if (draw_pixel_array[y][x] == 1)
+      if (pixels[y][x] == 1)
       {
-        ctx.putImageData(fill_pixel, x*multiple, y*multiple);
+        ctx.putImageData(fill_pixel, x, y);
       }
     }
   }
-  
-  draw_grid()
+}
 
+function clear_small_canvas()
+{
+  var canvas = document.getElementById('small_coords_canvas');
+  var ctx = canvas.getContext('2d');
+
+  ctx.clearRect(0, 0, 180, 196);
+}
+
+function clear_large_canvas()
+{
+  var canvas = document.getElementById('coords_canvas');
+  var ctx = canvas.getContext('2d');
+
+  ctx.clearRect(0, 0, 180*11, 196*11);
 }
 
 function resize_grid_canvas()
 {
-    var multiple = parseInt($("#multiple").val());
     $("#coords_canvas").attr("width",180*multiple).attr("height",196*multiple);
 }
 
 function draw_grid()
 {
-    var multiple = parseInt($("#multiple").val());
     var canvas = document.getElementById('coords_canvas');
     var ctx = canvas.getContext('2d');
 
     ctx.strokeStyle = "#dedfde";
-    for (var x = 0; x < 180; x++)
+    for (var x = 0; x < 180-1; x++)
     {
       ctx.beginPath();
       ctx.moveTo((x+1)*multiple-.5,0);
@@ -266,7 +521,7 @@ function draw_grid()
       ctx.stroke();
     }
     
-    for (var y = 0; y < 196; y++)
+    for (var y = 0; y < 196-1; y++)
     {
       ctx.beginPath();
       ctx.moveTo(0, (y+1)*multiple-.5);
@@ -288,6 +543,9 @@ var in_pixel_array = [];
 var good_pixel_array = [];
 var bad_pixel_array = [];
 var draw_pixel_array = [];
+var paths_pixel_array = [];
+var expanded_paths_pixel_array = [];
+var remaining_good_pixels = [];
 
 for (var i = 0; i < 196; i++)
 {
@@ -295,12 +553,18 @@ for (var i = 0; i < 196; i++)
     good_pixel_array[i] = [];
     bad_pixel_array[i] = [];
     draw_pixel_array[i] = [];
+    paths_pixel_array[i] = [];
+    expanded_paths_pixel_array[i] = [];
+    remaining_good_pixels[i] = [];
     for (var j = 0; j < 180; j++)
     {
         in_pixel_array[i][j] = 0;
         good_pixel_array[i][j] = 0;
         bad_pixel_array[i][j] = 0;
         draw_pixel_array[i][j] = 0;
+        paths_pixel_array[i][j] = 0;
+        expanded_paths_pixel_array[i][j] = 0;
+        remaining_good_pixels[i][j] = 0;
     }
 }
       
