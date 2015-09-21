@@ -371,3 +371,188 @@ function dataURLToBlob(dataURL) {
     return new Blob([uInt8Array], {type: contentType});
 }
 
+function dataURLToUint8Array(dataURL) {
+    var BASE64_MARKER = ';base64,';
+    if (dataURL.indexOf(BASE64_MARKER) == -1) {
+        var parts = dataURL.split(',');
+        var contentType = parts[0].split(':')[1];
+        var raw = decodeURIComponent(parts[1]);
+
+        return raw;
+    }
+
+    var parts = dataURL.split(BASE64_MARKER);
+    var contentType = parts[0].split(':')[1];
+    var raw = window.atob(parts[1]);
+    var rawLength = raw.length;
+
+    var uInt8Array = new Uint8Array(rawLength);
+
+    for (var i = 0; i < rawLength; ++i) {
+        uInt8Array[i] = raw.charCodeAt(i);
+    }
+
+    return uInt8Array;
+}
+
+function find_shapes(coordinates)
+{
+    var copy = [];
+    for (var y = 0; y < 196; y++)
+    {
+        copy[y] = [];
+        for (var x = 0; x < 180; x++)
+        {
+            copy[y][x] = coordinates[y][x];
+        }
+    }
+    
+    var result = [];
+    
+    var temp;
+    while (temp = find_shape(copy))
+    {
+        result.push(temp);
+        for (var y = 0; y < 196; y++)
+        {
+            for (var x = 0; x < 180; x++)
+            {
+                if (temp[y][x] == 1)
+                {
+                    copy[y][x] = 0;
+                }
+            }
+        }
+    }
+  
+    return result;
+}
+
+function find_shape(coordinates)
+{
+    var result = [];
+    for (var y = 0; y < 196; y++)
+    {
+        result[y] = [];
+        for (var x = 0; x < 180; x++)
+        {
+            result[y][x] = 0;
+        }
+    }
+    
+    var first_pixel = find_first_pixel(coordinates);
+    if (!first_pixel)
+    {
+        return false;
+    }
+    
+    result = flood_copy(result, coordinates, first_pixel.x, first_pixel.y);
+    
+    return result;
+}
+
+function flood_copy(to, from, x, y)
+{
+    if (x < 0 || x > 179 || y < 0 || y > 195)
+    {
+        return to;
+    }
+    if (from[y][x] != 1 || to[y][x] == 1)
+    {
+        return to;
+    }
+    
+    to[y][x] = 1;
+    to = flood_copy(to, from, x-1, y-1)
+    to = flood_copy(to, from, x, y-1)
+    to = flood_copy(to, from, x+1, y-1)
+    to = flood_copy(to, from, x-1, y)
+    
+    to = flood_copy(to, from, x+1, y)
+    to = flood_copy(to, from, x-1, y+1)
+    to = flood_copy(to, from, x, y+1)
+    to = flood_copy(to, from, x+1, y+1)
+    
+    return to;
+}
+
+function find_first_pixel(coordinates)
+{
+    for (var y = 0; y < 196; y++)
+    {
+        for (var x = 0; x < 180; x++)
+        {
+            if (coordinates[y][x] == 1)
+            {
+                return {x: x, y: y};
+            }
+        }
+    }
+    return false;
+}
+
+function getBlob(canvas)
+{
+    return dataURLToBlob(canvas.toDataURL("image/png"));
+}
+
+function SaveCoordsImage(coordinates, r, g, b, a) {
+    var canvas = CoordsToCanvas(coordinates, r, g, b, a)
+
+    var data = getBlob(canvas);
+    
+    downloadBlob(data, filename.substring(0,filename.length-4) + "_REGION.png")
+}
+
+function CoordsToCanvas(coordinates, r, g, b, a) {
+    var canvas = document.createElement('canvas');
+    canvas.width = 180;
+    canvas.height = 196;
+    var ctx = canvas.getContext("2d");
+
+    var fill_pixel = ctx.createImageData(1, 1);
+    fill_pixel.data[0] = r;
+    fill_pixel.data[1] = g;
+    fill_pixel.data[2] = b;
+    fill_pixel.data[3] = a;
+
+    for (var y = 0; y < 196; y++)
+    {
+        for (var x = 0; x < 180; x++)
+        {
+            if (coordinates[y][x] == 1)
+            {
+                ctx.putImageData(fill_pixel, x, y);
+            }
+        }
+    }
+    
+    return canvas;
+}
+
+function downloadBlob(blob, filename)
+{
+    var a = $("<a style=\"display: none\">This should never be seen</a>");
+
+    a[0].download = filename;
+    a[0].href = window.URL.createObjectURL(blob);
+    a[0].textContent = 'Download ready';
+
+    a[0].dataset.downloadurl = ['text/plain', a.download, a.href].join(':');
+    a[0].click();
+}
+
+function SaveShapes(shapes)
+{
+    var zip = new JSZip();
+    
+    for(var i in shapes) {
+        var canvas = CoordsToCanvas(shapes[i], 0, 0, 0, 0xFF);
+        zip.file(filename.substring(0,filename.length-4) + "_REGION_" + (parseInt(i)+1) + ".png",dataURLToUint8Array(canvas.toDataURL("image/png")));
+    }
+    
+    console.log(zip.files)
+    var content = zip.generate({type:"blob"});
+    downloadBlob(content,filename.substring(0,filename.length-4) + "_SHAPES.zip");
+}  
+
