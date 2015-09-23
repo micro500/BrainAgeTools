@@ -1,4 +1,8 @@
 $(function() {
+    multiple = parseInt($("#multiple").val());
+  
+    resize_grid_canvas()
+    
     $("#open_file_btn").click(function() {
         $("#hidden_file_select_btn").click();
     });
@@ -13,8 +17,6 @@ $(function() {
     });
     
     $("#copy_draw_to_grid_btn").click(function() {
-        resize_grid_canvas()
-        
         clear_small_canvas()
         copy_pixel_array(draw_pixel_array, 0x00, 0x00, 0x00, 0xff)
         
@@ -37,8 +39,6 @@ $(function() {
       copy_small_to_big();
       draw_grid()
     });
-    
-    multiple = parseInt($("#multiple").val());
     
     document.onkeydown = function(e)
     {
@@ -94,6 +94,12 @@ function add_expanded_paths()
   dark_pixel.data[2] = 0x6f
   dark_pixel.data[3] = 0xff
   
+  var bad_pixel = ctx.createImageData(1, 1);
+  bad_pixel.data[0] = 0xd5
+  bad_pixel.data[1] = 0x83
+  bad_pixel.data[2] = 0x83
+  bad_pixel.data[3] = 0xff
+  
   for (var y = 0; y < 196; y++)
   {
     for (var x = 0; x < 180; x++)
@@ -106,7 +112,14 @@ function add_expanded_paths()
         }
         else
         {
-            ctx.putImageData(light_pixel, x, y);
+            if (good_pixel_array[y][x] == 1)
+            {
+                ctx.putImageData(light_pixel, x, y);
+            }
+            else
+            {
+                ctx.putImageData(bad_pixel, x, y);
+            }
         }
       }
     }
@@ -829,6 +842,16 @@ function handleImage(e){
         img.onload = function(){
             process_image(img);
             update_image();
+            
+            clear_small_canvas()
+            clear_large_canvas()
+            process_coords_list()
+            copy_pixel_array(good_pixel_array, 0xaf, 0xaf, 0xaf, 0xff)
+            copy_pixel_array(draw_pixel_array, 0x00, 0x00, 0x00, 0xff)
+            add_expanded_paths()
+            draw_paths()
+            copy_small_to_big();
+            draw_grid()
         };
         img.src = event.target.result;
     };
