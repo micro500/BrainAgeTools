@@ -39,6 +39,28 @@ $(function() {
     });
     
     multiple = parseInt($("#multiple").val());
+    
+    document.onkeydown = function(e)
+    {
+        var evtobj = window.event? event : e
+        if (evtobj.keyCode == 90 && evtobj.ctrlKey)
+        {
+            var lines = $("#coords_textbox").val().split("\n");
+            lines = lines.slice(0, lines.length-2)
+            lines.push("");
+            $("#coords_textbox").val(lines.join("\n"));
+            
+            clear_small_canvas()
+            clear_large_canvas()
+            process_coords_list()
+            copy_pixel_array(good_pixel_array, 0xaf, 0xaf, 0xaf, 0xff)
+            copy_pixel_array(draw_pixel_array, 0x00, 0x00, 0x00, 0xff)
+            add_expanded_paths()
+            draw_paths()
+            copy_small_to_big();
+            draw_grid()
+        }
+    };
 });
 
 function add_expanded_paths()
@@ -297,11 +319,6 @@ function process_coords_list()
                         if (x0 === x1 && y0 === y1) break;
                         if (dx_a > dy_a)
                         {
-                            if (x0 > x1)
-                            {
-                                console.log("ERR")
-                                //return;
-                            }
                             value += dy_a;
                             if (value >= dx_a)
                             {
@@ -312,11 +329,6 @@ function process_coords_list()
                         }
                         else
                         {
-                            if (y0 > y1)
-                            {
-                                console.log("ERR")
-                                //return;
-                            }
                             value += dx_a;
                             if (value >= dy_a)
                             {
