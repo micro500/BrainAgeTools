@@ -60,6 +60,20 @@ $(function() {
             copy_small_to_big();
             draw_grid()
         }
+        else if (evtobj.keyCode == 66 && evtobj.ctrlKey)
+        {
+            $("#coords_textbox").val($("#coords_textbox").val() + "\n");
+            
+            clear_small_canvas()
+            clear_large_canvas()
+            process_coords_list()
+            copy_pixel_array(good_pixel_array, 0xaf, 0xaf, 0xaf, 0xff)
+            copy_pixel_array(draw_pixel_array, 0x00, 0x00, 0x00, 0xff)
+            add_expanded_paths()
+            draw_paths()
+            copy_small_to_big();
+            draw_grid()
+        }
     };
 });
 
