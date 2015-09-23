@@ -153,248 +153,262 @@ var end_points = [];
 
 function process_coords_list()
 {
-  for (var i = 0; i < 196; i++)
-  {
-      start_points[i] = [];
-      mid_points[i] = [];
-      control_points[i] = [];
-      end_points[i] = [];
-      for (var j = 0; j < 180; j++)
-      {
-          start_points[i][j] = 0;
-          mid_points[i][j] = 0;
-          control_points[i][j] = 0;
-          end_points[i][j] = 0;
-      }
-  }
+    for (var i = 0; i < 196; i++)
+    {
+        start_points[i] = [];
+        mid_points[i] = [];
+        control_points[i] = [];
+        end_points[i] = [];
+        for (var j = 0; j < 180; j++)
+        {
+            start_points[i][j] = 0;
+            mid_points[i][j] = 0;
+            control_points[i][j] = 0;
+            end_points[i][j] = 0;
+        }
+    }
+      
+    paths_pixel_array = [];
+    for (var i = 0; i < 196; i++)
+    {
+        paths_pixel_array[i] = [];
+        for (var j = 0; j < 180; j++)
+        {
+            paths_pixel_array[i][j] = 0;
+        }
+    }
+
+    // line by line in coords
+    // get x and y
+    // if first point, draw a green pixel
+    // if not, draw yellow
+    // mid points, draw blue
+    var line_started = false;
+    var lines = $("#coords_textbox").val().split("\n");
+    var prev_x = 0;
+    var prev_y = 0;
+    for (var i = 0; i < lines.length; i++)
+    {
+        if (lines[i]!= "")
+        {
+            var values = lines[i].split(",");
+
+            if (values.length < 2)
+            {
+                console.log("Illegal line: " + lines[i]);
+                continue;
+            }
+
+            var x = parseInt(values[0]);
+            var y = parseInt(values[1]);
+            
+            if (x < 0 || x > 179 || y < 0 || y > 195)
+            {
+                console.log("Illegal coord: " + x + ", " + y);
+                continue;
+            }
+
+            if (line_started)
+            {
+                var dist_x = x - prev_x;
+                var dist_y = y - prev_y;
+                if (dist_x == 0)
+                {
+                    // vertical line
+                    if (Math.abs(dist_y) > 1)
+                    {
+                        if (prev_y < y)
+                        {
+                            // down
+                            for (var new_y = prev_y + 1; new_y < y; new_y++)
+                            {
+                                mid_points[new_y][x] = 1;
+                                paths_pixel_array[new_y][x] = 1;
+                            }
+                        }
+                        else
+                        {
+                            // up
+                            for (var new_y = y + 1; new_y < prev_y; new_y++)
+                            {
+                                mid_points[new_y][x] = 1;
+                                paths_pixel_array[new_y][x] = 1;
+                            }
+                        }
+                    }
+                }
+                else if (dist_y == 0)
+                {
+                    // horizontal line
+                    if (Math.abs(dist_x) > 1)
+                    {
+                        if (prev_x < x)
+                        {
+                            // down
+                            for (var new_x = prev_x + 1; new_x < x; new_x++)
+                            {
+                                mid_points[y][new_x] = 1;
+                                paths_pixel_array[y][new_x] = 1;
+                            }
+                        }
+                        else
+                        {
+                            // up
+                            for (var new_x = x + 1; new_x < prev_x; new_x++)
+                            {
+                                mid_points[y][new_x] = 1;
+                                paths_pixel_array[y][new_x] = 1;
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    var x0 = x;
+                    var y0 = y;
+                    
+                    var x1 = prev_x;
+                    var y1 = prev_y;
+                    
+                    var dx_a = Math.abs(x1 - x0);
+                    var dy_a = Math.abs(y1 - y0);
+                    
+                    if ((dy_a > dx_a && prev_y > y0) || (dx_a > dy_a && prev_x < x))
+                    {
+                        x0 = prev_x;
+                        y0 = prev_y;
+                        
+                        x1 = x;
+                        y1 = y;
+                    }
+                    
+                    var dx = x1 - x0;
+                    var dy = y1 - y0;
+                    
+                    var sx = x1 - x0 > 0 ? 1 : -1;
+                    var sy = y1 - y0 > 0 ? 1 : -1;
+                    
+                    var value = 0;
+                   
+                    while (true)
+                    {
+                        mid_points[y0][x0] = 1;
+                        paths_pixel_array[y0][x0] = 1;
+                        if (x0 === x1 && y0 === y1) break;
+                        if (dx_a > dy_a)
+                        {
+                            if (x0 > x1)
+                            {
+                                console.log("ERR")
+                                //return;
+                            }
+                            value += dy_a;
+                            if (value >= dx_a)
+                            {
+                                value -= dx_a;
+                                y0 += sy;
+                            }
+                            x0 += sx;
+                        }
+                        else
+                        {
+                            if (y0 > y1)
+                            {
+                                console.log("ERR")
+                                //return;
+                            }
+                            value += dx_a;
+                            if (value >= dy_a)
+                            {
+                                value -= dy_a;
+                                x0 += sx;
+                            }
+                            y0 += sy;
+                        }
+                    }
+                }
+            
+                if (lines[i+1] == "")
+                {
+                    end_points[y][x] = 1;
+                }
+                else
+                {
+                    control_points[y][x] = 1;
+                }
+                paths_pixel_array[y][x] = 1;
+            }
+            else
+            {
+              start_points[y][x] = 1;
+              paths_pixel_array[y][x] = 1;
+              line_started = true;
+            }
+        
+            prev_x = x;
+            prev_y = y;
+        }
+        else
+        {
+            /*// change prev pixel to end pixel
+            end_points[prev_y][prev_x] = 1;
+            control_points[prev_y][prev_x] = 1;
+            paths_pixel_array[prev_y][prev_x] = 1;*/
+            line_started = false;
+        }
+    }
+  
+    expanded_paths_pixel_array = [];
+    for (var y = 0; y < 196; y++)
+    {
+        expanded_paths_pixel_array[y] = [];
+        for (var x = 0; x < 180; x++)
+        {
+            expanded_paths_pixel_array[y][x] = 0;
+        }
+    }
+
     
-  paths_pixel_array = [];
-  for (var i = 0; i < 196; i++)
-  {
-      paths_pixel_array[i] = [];
-      for (var j = 0; j < 180; j++)
-      {
-          paths_pixel_array[i][j] = 0;
-      }
-  }
-
-  // line by line in coords
-  // get x and y
-  // if first point, draw a green pixel
-  // if not, draw yellow
-  // mid points, draw blue
-  var line_started = false;
-  var lines = $("#coords_textbox").val().split("\n");
-  var prev_x = 0;
-  var prev_y = 0;
-  for (var i = 0; i < lines.length; i++)
-  {
-    if (lines[i]!= "")
+    // Expand the paths array into 4x4 pixels
+    for (var y = 0; y < 196; y++)
     {
-      var values = lines[i].split(",");
-
-      if (values.length < 2)
-      {
-        console.log("Illegal line: " + lines[i]);
-        continue;
-      }
-
-      var x = parseInt(values[0]);
-      var y = parseInt(values[1]);
-      
-      if (x < 0 || x > 179 || y < 0 || y > 195)
-      {
-        console.log("Illegal coord: " + x + ", " + y);
-        continue;
-      }
-
-      if (line_started)
-      {
-        var dist_x = x - prev_x;
-        var dist_y = y - prev_y;
-        if (dist_x == 0)
+        for (var x = 0; x < 180; x++)
         {
-          // vertical line
-          if (Math.abs(dist_y) > 1)
-          {
-            if (prev_y < y)
+            if (paths_pixel_array[y][x] == 1)
             {
-              // down
-              for (var new_y = prev_y + 1; new_y < y; new_y++)
-              {
-                mid_points[new_y][x] = 1;
-                paths_pixel_array[new_y][x] = 1;
-              }
+                for (var i = 0; i < 4; i++)
+                {
+                    for (var j = 0; j < 4; j++)
+                    {
+                        expanded_paths_pixel_array[Math.max(y-i,0)][Math.min(x+j,179)] = 1;
+                    }
+                }
             }
-            else
-            {
-              // up
-              for (var new_y = y + 1; new_y < prev_y; new_y++)
-              {
-                mid_points[new_y][x] = 1;
-                paths_pixel_array[new_y][x] = 1;
-              }
-            }
-          }
         }
-        else if (dist_y == 0)
-        {
-          // horizontal line
-          if (Math.abs(dist_x) > 1)
-          {
-            if (prev_x < x)
-            {
-              // down
-              for (var new_x = prev_x + 1; new_x < x; new_x++)
-              {
-                mid_points[y][new_x] = 1;
-                paths_pixel_array[y][new_x] = 1;
-              }
-            }
-            else
-            {
-              // up
-              for (var new_x = x + 1; new_x < prev_x; new_x++)
-              {
-                mid_points[y][new_x] = 1;
-                paths_pixel_array[y][new_x] = 1;
-              }
-            }
-          }
-        }
-        else if (Math.abs(dist_x) == Math.abs(dist_y))
-        {
-          // diagonal
-          if (Math.abs(dist_x) > 1)
-          {
-            // UL -> DR
-            if (dist_x > 0 && dist_y > 0)
-            {
-              for (var offset = 1; offset < Math.abs(dist_x); offset++)
-              {
-                mid_points[prev_y+offset][prev_x+offset] = 1;
-                paths_pixel_array[prev_y+offset][prev_x+offset] = 1;
-              }
-            }
-            // DR -> UL
-            else if (dist_x < 0 && dist_y < 0)
-            {
-              for (var offset = 1; offset < Math.abs(dist_x); offset++)
-              {
-                mid_points[prev_y-offset][prev_x-offset] = 1;
-                paths_pixel_array[prev_y-offset][prev_x-offset] = 1;
-              }
-            }
-            // DL -> UR
-            else if (dist_x > 0 && dist_y < 0)
-            {
-              for (var offset = 1; offset < Math.abs(dist_x); offset++)
-              {
-                mid_points[prev_y-offset][prev_x+offset] = 1;
-                paths_pixel_array[prev_y-offset][prev_x+offset] = 1;
-              }
-            }
-            // UR -> DL
-            else if (dist_x < 0 && dist_y > 0)
-            {
-              for (var offset = 1; offset < Math.abs(dist_x); offset++)
-              {
-                mid_points[prev_y+offset][prev_x-offset] = 1;
-                paths_pixel_array[prev_y+offset][prev_x-offset] = 1;
-              }
-            }
-          }
-        }
-        else
-        {
-          // illegal
-          console.log("illegal coord: (" + x + "," + y + ") " + dist_x + " " + dist_y)
-        }
-
-        if (lines[i+1] == "")
-        {
-            end_points[y][x] = 1;
-        }
-        else
-        {
-            control_points[y][x] = 1;
-        }
-        paths_pixel_array[y][x] = 1;
-      }
-      else
-      {
-        start_points[y][x] = 1;
-        paths_pixel_array[y][x] = 1;
-        line_started = true;
-      }
-      
-      prev_x = x;
-      prev_y = y;
     }
-    else
+    
+    remaining_good_pixels = [];
+    for (var y = 0; y < 196; y++)
     {
-        /*// change prev pixel to end pixel
-        end_points[prev_y][prev_x] = 1;
-        control_points[prev_y][prev_x] = 1;
-        paths_pixel_array[prev_y][prev_x] = 1;*/
-        line_started = false;
+        remaining_good_pixels[y] = [];
+        for (var x = 0; x < 180; x++)
+        {
+            remaining_good_pixels[y][x] = 0;
+        }
     }
-  }
-  
-  
-  expanded_paths_pixel_array = [];
-  for (var y = 0; y < 196; y++)
-  {
-      expanded_paths_pixel_array[y] = [];
-      for (var x = 0; x < 180; x++)
-      {
-          expanded_paths_pixel_array[y][x] = 0;
-      }
-  }
-
-  
-  // Expand the paths array into 4x4 pixels
-  for (var y = 0; y < 196; y++)
-  {
-      for (var x = 0; x < 180; x++)
-      {
-          if (paths_pixel_array[y][x] == 1)
-          {
-              for (var i = 0; i < 4; i++)
-              {
-                  for (var j = 0; j < 4; j++)
-                  {
-                      expanded_paths_pixel_array[Math.max(y-i,0)][Math.min(x+j,179)] = 1;
-                  }
-              }
-          }
-      }
-  }
-  
-  remaining_good_pixels = [];
-  for (var y = 0; y < 196; y++)
-  {
-      remaining_good_pixels[y] = [];
-      for (var x = 0; x < 180; x++)
-      {
-          remaining_good_pixels[y][x] = 0;
-      }
-  }
-  
-  // remove the expanded pixels from the good array, see what is left
-  // do a modified min-cover
-  for (var y = 0; y < 196; y++)
-  {
-      for (var x = 0; x < 180; x++)
-      {
-          if (good_pixel_array[y][x] == 1 && expanded_paths_pixel_array[y][x] == 0)
-          {
-              remaining_good_pixels[y][x] = 1;
-          }
-      }
-  }
-  
-  
+    
+    // remove the expanded pixels from the good array, see what is left
+    // do a modified min-cover
+    for (var y = 0; y < 196; y++)
+    {
+        for (var x = 0; x < 180; x++)
+        {
+            if (good_pixel_array[y][x] == 1 && expanded_paths_pixel_array[y][x] == 0)
+            {
+                remaining_good_pixels[y][x] = 1;
+            }
+        }
+    }
 }
 
 function draw_paths()
@@ -517,7 +531,7 @@ function draw_grid()
     {
       ctx.beginPath();
       ctx.moveTo((x+1)*multiple-.5,0);
-      ctx.lineTo((x+1)*multiple-1,196*multiple);
+      ctx.lineTo((x+1)*multiple-.5,196*multiple);
       ctx.stroke();
     }
     
