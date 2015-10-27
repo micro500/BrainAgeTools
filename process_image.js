@@ -3,6 +3,10 @@ $(function() {
   
     resize_grid_canvas()
     
+    $("#save_lua").click(function() {
+        download_coordlist_lua();
+    });
+    
     $("#open_file_btn").click(function() {
         $("#hidden_file_select_btn").click();
     });
@@ -60,7 +64,7 @@ $(function() {
             copy_small_to_big();
             draw_grid()
         }
-        else if (evtobj.keyCode == 66 && evtobj.ctrlKey)
+        else if ((evtobj.keyCode == 66 || evtobj.keyCode == 88) && evtobj.ctrlKey)
         {
             $("#coords_textbox").val($("#coords_textbox").val() + "\n");
             
@@ -136,8 +140,8 @@ function download_coordlist_lua(coordinates)
     // Creates a lua script to input all coordinates
     var data = [];
     data.push("local off_screen = { };\n");
-    data.push("off_screen[\"x\"] = 150;\n");
-    data.push("off_screen[\"y\"] = 0;\n");
+    data.push("off_screen[\"x\"] = 234;\n");
+    data.push("off_screen[\"y\"] = 192;\n");
     data.push("off_screen[\"touch\"] = true ;\n\n");
     data.push("local touch_data = { };\n");
     data.push("touch_data[\"touch\"] = true ;\n\n");
@@ -513,6 +517,7 @@ function copy_small_to_big()
   var ctx = large_canvas.getContext('2d');
   
   ctx.imageSmoothingEnabled = false;
+  ctx.msImageSmoothingEnabled = false;
   ctx.drawImage(png, 0, 0, 180*multiple, 196*multiple)
 }
 
@@ -907,8 +912,8 @@ function download_lua(coordinates)
     // Creates a lua script to input all coordinates
     var data = [];
     data.push("local off_screen = { };\n");
-    data.push("off_screen[\"x\"] = 150;\n");
-    data.push("off_screen[\"y\"] = 0;\n");
+    data.push("off_screen[\"x\"] = 234;\n");
+    data.push("off_screen[\"y\"] = 192;\n");
     data.push("off_screen[\"touch\"] = true ;\n\n");
     data.push("local touch_data = { };\n");
     data.push("touch_data[\"touch\"] = true ;\n\n");
