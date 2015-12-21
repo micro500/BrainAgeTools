@@ -44,10 +44,9 @@ $(function() {
       draw_grid()
     });
     
-    document.onkeydown = function(e)
+    $("html").keydown(function(event)
     {
-        var evtobj = window.event? event : e
-        if (evtobj.keyCode == 90 && evtobj.ctrlKey)
+        if (event.keyCode == 90 && event.ctrlKey)
         {
             var lines = $("#coords_textbox").val().split("\n");
             lines = lines.slice(0, lines.length-2)
@@ -64,7 +63,7 @@ $(function() {
             copy_small_to_big();
             draw_grid()
         }
-        else if ((evtobj.keyCode == 66 || evtobj.keyCode == 88) && evtobj.ctrlKey)
+        else if ((event.keyCode == 66 || event.keyCode == 88) && event.ctrlKey)
         {
             $("#coords_textbox").val($("#coords_textbox").val() + "\n");
             
@@ -78,8 +77,13 @@ $(function() {
             copy_small_to_big();
             draw_grid()
         }
-    };
-});
+    });
+ });
+
+function copy_manual_coords()
+{
+    $("#coords_textbox").val($("#man_coords_textbox").val())
+} 
 
 function add_expanded_paths()
 {
@@ -510,15 +514,13 @@ function draw_paths()
 function copy_small_to_big()
 {
   var small_canvas = document.getElementById('small_coords_canvas');
-
-  png.src = small_canvas.toDataURL('image/png');
-  
   var large_canvas = document.getElementById('coords_canvas');
   var ctx = large_canvas.getContext('2d');
   
   ctx.imageSmoothingEnabled = false;
   ctx.msImageSmoothingEnabled = false;
-  ctx.drawImage(png, 0, 0, 180*multiple, 196*multiple)
+  
+  ctx.drawImage(small_canvas,0,0,180,196,0,0,180*multiple,196*multiple)
 }
 
 function copy_pixel_array(pixels, r, g, b, a)
